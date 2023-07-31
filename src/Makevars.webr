@@ -1,0 +1,34 @@
+UNAME := $(shell uname)
+
+LIBUV := libuv-1.44.2
+
+PKG_LIBS = ./$(LIBUV)/.libs/libuv.a
+
+SOURCES = $(wildcard *.cc unix/*.cc)
+OBJECTS = $(SOURCES:.cc=.o)
+
+PKG_CPPFLAGS = -I./$(LIBUV)/include -I.
+
+all: $(SHLIB)
+
+$(SHLIB): $(LIBUV)/.libs/libuv.a
+
+$(LIBUV)/Makefile:
+	(cd $(LIBUV) && \
+	  CFLAGS="$(CFLAGS) $(CPPFLAGS) $(CPICFLAGS) $(C_VISIBILITY) -fPIC -g" \
+	  LDFLAGS="$(LDFLAGS)" \
+	  RANLIB="$(RANLIB)" \
+	  emconfigure ./configure --host=wasm32-unknown-emscripten; \
+	)
+
+$(LIBUV)/.libs/libuv.a: $(LIBUV)/Makefile
+	$(MAKE) --directory=$(LIBUV) \
+		HAVE_DTRACE=0
+
+.PHONY: shlib-clean clean
+
+# shlib-clean: clean
+
+clean:
+	$(MAKE) --directory=$(LIBUV) distclean
+	rm -f $(OBJECTS)
